@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "target": "es6",
+        "sourceMap": true,
+        "esModuleInterop": true,
+        "lib": [
+            "es2017",
+            "dom",
+            "es6"
+        ],
+        "noUnusedLocals": true,
+        "outDir":"../GameJS",
+        "moduleResolution": "node"
+        //"module": "CommonJS"
+    }
+}
