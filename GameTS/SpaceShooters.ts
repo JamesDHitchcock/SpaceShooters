@@ -20,7 +20,7 @@ export class SpaceShooters
       "d": false,
       "ArrowLeft": false,
       "ArrowRight": false,
-      "Space": false,
+      " ": false,
       "Enter": false
    }
 

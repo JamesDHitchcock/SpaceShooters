@@ -19,6 +19,11 @@ export class GameWindow
       }
    }
 
+   AddBullets(transferBullets:Bullet[])
+   {
+      transferBullets.forEach( (bullet) => { this.bullets.push(bullet)} );
+   }
+
    Update() : Bullet[]
    {
       this.player.Update();
@@ -48,6 +53,8 @@ export class GameWindow
          }
          if(this.bullets[i].NextWindow())
          {
+            bulletsToRemove.push(i);
+            this.bullets[i].ToNextWindow();
             transferBullets.push(this.bullets[i]);
          }
       }
@@ -56,8 +63,12 @@ export class GameWindow
          this.bullets.splice(bulletsToRemove[i], 1);
       }
 
-      //check for collisions
+      if(this.player.Firing())
+      {
+         this.bullets.push(this.player.FireBullet());
+      }
 
+      //check for collisions
       return transferBullets;
    }
 
@@ -66,12 +77,6 @@ export class GameWindow
       this.player.ProcessInput(aInput);
       //need to check if new player status is same as before
       //if so do nothing, otherwise, need to call update chain?
-   }
-
-   //takes the current game window and flips it to show above
-   ConvertToTop() : GameWindow
-   {
-      return this;
    }
 
    Draw(aCtx:CanvasRenderingContext2D)
@@ -104,8 +109,9 @@ export class GameState
    //So which buttons pressed and the frame pressed on.
 
    protected frameNumber:number;
-   protected windows:GameWindow[];
-   //window[0] = homeWindow
+   //protected windows:GameWindow[];
+   protected homeWindow:GameWindow;
+   protected awayWindow:GameWindow;
    //window[1] = awayWindow
 
    //protected homeWindow:GameWindow;
@@ -120,18 +126,15 @@ export class GameState
    constructor(frame:number)
    {
       this.frameNumber = frame;
-      this.windows = new Array<GameWindow>();
-      this.windows.push(new GameWindow());
-      this.windows.push(new GameWindow());
+      this.homeWindow = new GameWindow();
+      this.awayWindow = new GameWindow();
    }
 
    Clone(): GameState
    {
       let gameStateClone = new GameState(this.frameNumber);
-      for(let i = 0; i < this.windows.length; i++)
-      {
-         gameStateClone.windows[i] = this.windows[i];
-      }
+      gameStateClone.homeWindow = this.homeWindow;
+      gameStateClone.awayWindow = this.awayWindow;
       return gameStateClone;
    }
 
@@ -142,17 +145,24 @@ export class GameState
 
    UpdateFromInput(keys:Record<string,boolean>)
    {
-      this.windows[1].UpdateFromInput(keys);
+      this.awayWindow.UpdateFromInput(keys);
    }
 
    Update(keys:Record<string,boolean>) : void
    {
       this.frameNumber++;
-      this.windows[0].UpdateFromInput(keys);
-      for(let i = 0; i < this.windows.length; i++)
+      this.homeWindow.UpdateFromInput(keys);
+
+      let transferBulletsToAway:Bullet[] = this.homeWindow.Update();
+      let transferBulletsToHome:Bullet[] = this.awayWindow.Update();
+      
+      if(transferBulletsToAway.length > 0)
       {
-         //update each window and handle bullet transfer
-         this.windows[i].Update();
+         this.awayWindow.AddBullets(transferBulletsToAway);
+      }
+      if(transferBulletsToHome.length > 0)
+      {
+         this.homeWindow.AddBullets(transferBulletsToHome);
       }
    }
 
@@ -168,10 +178,10 @@ export class GameState
    {
       let aCanvas = <HTMLCanvasElement> document.getElementById("canvas");
       aCtx.translate(0,(aCanvas.height/2));
-      this.windows[0].Draw(aCtx);
+      this.homeWindow.Draw(aCtx);
       aCtx.translate(aCanvas.width,0);
       aCtx.rotate(Math.PI);
-      this.windows[1].Draw(aCtx);
+      this.awayWindow.Draw(aCtx);
    }
 }
 

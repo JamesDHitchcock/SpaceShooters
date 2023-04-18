@@ -13,6 +13,19 @@ export class Character {
     PosY() {
         return this.posY;
     }
+    SetPos(aPosX, aPosY) {
+        this.posX = aPosX;
+        this.posY = aPosY;
+    }
+    Health() {
+        return this.health;
+    }
+    Height() {
+        return this.height;
+    }
+    Width() {
+        return this.width;
+    }
 }
 export class Player extends Character {
     constructor(x, y) {
@@ -45,12 +58,21 @@ export class Player extends Character {
             this.moveLeft = false;
             this.moveRight = false;
         }
-        if (aInput["Space"] || aInput["Enter"]) {
+        if (aInput[" "] || aInput["Enter"]) {
             this.firing = true;
         }
-        if (!aInput["Space"] && !aInput["Enter"]) {
+        if (!aInput[" "] && !aInput["Enter"]) {
             this.firing = false;
         }
+    }
+    Firing() {
+        return this.firing;
+    }
+    FireBullet() {
+        let aBullet = new Bullet(0, 0);
+        aBullet.SetPos(this.posX - aBullet.Width() / 2, this.posY - aBullet.Height());
+        aBullet.SetFiredByPlayer();
+        return aBullet;
     }
     Update() {
         if (this.moveLeft) {
@@ -134,17 +156,20 @@ export class Bullet extends Character {
     ToDelete() {
         return this.toDelete;
     }
-    FiredByPlayer() {
+    SetFiredByPlayer() {
         this.toMove = -this.toMove;
+    }
+    ToNextWindow() {
+        this.nextWindow = false;
     }
     Update() {
         this.posY += this.toMove;
         let aCanvas = document.getElementById("canvas");
         if (this.posY < 0) {
-            this.toDelete = true;
             this.nextWindow = true;
-            this.posY = aCanvas.height / 2 + this.posY;
-            this.posX = aCanvas.width - this.posX;
+            this.posY = -this.posY - this.height;
+            this.posX = aCanvas.width - this.posX - this.width;
+            this.toMove = -this.toMove;
         }
         if (this.posY > (aCanvas.height / 2)) {
             this.toDelete = true;

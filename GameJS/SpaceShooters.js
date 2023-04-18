@@ -6,7 +6,7 @@ export class SpaceShooters {
             "d": false,
             "ArrowLeft": false,
             "ArrowRight": false,
-            "Space": false,
+            " ": false,
             "Enter": false
         };
         this.canvas = document.getElementById("canvas");
