@@ -16,6 +16,5 @@ window.onload=function(){
 document.getElementById("connectButton").addEventListener("click", ConnectAndPlay, false);
 
 function ConnectAndPlay(){
-   globalThis.game.Begin();
-   globalThis.game.GameLoop();
+   setUpSpaceShooters();
 }

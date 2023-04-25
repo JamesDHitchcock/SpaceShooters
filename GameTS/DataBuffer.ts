@@ -1,16 +1,46 @@
  declare var Peer:any;
  declare var DataConnction:any;
 
+ export class DataTransfer
+ {
+    protected frameNumber:number;
+    //protected frameAdvantage:number;
+    protected keys:Record<string,boolean> =
+    {
+       "a": false,
+       "d": false,
+       "ArrowLeft": false,
+       "ArrowRight": false,
+       "Enter": false,
+       "Space": false
+    };
+
+    constructor(aFrame:number, keys:Record<string,boolean>)
+    {
+      this.frameNumber = aFrame;
+      this.keys = keys;
+    }
+
+    Frame() : number
+    {
+      return this.frameNumber;
+    }
+
+    Keys() : Record<string,boolean>
+    {
+      return this.keys;
+    }
+ }
+
  export class DataBuffer
  {
    private peerInfo;//:Peer;
    private dataCon;//:DataConnection;
-   private dataBuffer:[];
+   private dataBuffer:DataTransfer[];
    constructor()
    {
       this.peerInfo = new Peer();
-      //peer connection works, focus on implementing game logic for now
-      /*this.peerInfo.on('open', (id) => {
+      this.peerInfo.on('open', (id) => {
          var peerIdEle = <HTMLInputElement> document.getElementById("peerId");
          peerIdEle.value = id;
       }
@@ -19,7 +49,7 @@
          console.error(error); 
          var peerIdEle = <HTMLInputElement> document.getElementById("peerId");
          peerIdEle.value = error;
-      });*/
+      });
    }
 
   public Connect(): void
@@ -33,6 +63,16 @@
             console.log(`received: ${data}`); 
          });
       });
+   }
+
+   Top() : DataTransfer
+   {
+      return this.dataBuffer.shift();
+   }
+
+   Empty() : boolean
+   {
+      return (this.dataBuffer.length > 0);
    }
 
    public Send(dataToSend:DataTransfer): void

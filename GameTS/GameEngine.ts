@@ -1,4 +1,4 @@
-import {DataBuffer} from "./DataBuffer.js";
+import {DataBuffer,DataTransfer} from "./DataBuffer.js";
 import {Player,Enemy,Bullet} from "./Character.js";
 
 export class GameWindow
@@ -22,6 +22,16 @@ export class GameWindow
    AddBullets(transferBullets:Bullet[])
    {
       transferBullets.forEach( (bullet) => { this.bullets.push(bullet)} );
+   }
+
+   ExtractPlayer(): Player
+   {
+      return this.player;
+   }
+
+   SetPlayerBehavior(aPlayer:Player)
+   {
+      this.player.SetPlayerInputStateFromPlayer(aPlayer);
    }
 
    Update() : Bullet[]
@@ -71,10 +81,24 @@ export class GameWindow
       //check for collisions
       return transferBullets;
    }
-
-   UpdateFromInput(aInput:Record<string,boolean>)
+   
+   UpdateFromInput(aInput:Record<string,boolean>): void
    {
       this.player.ProcessInput(aInput);
+   }
+
+   CheckAndUpdateFromInput(aInput:Record<string,boolean>): boolean
+   {
+      let testPlayer = new Player(0,0);
+      testPlayer.ProcessInput(aInput);
+
+      if(this.player.ComparePlayerInputState(testPlayer))
+      {
+         return false;//same player state, no need to update further
+      }
+      this.player.SetPlayerInputStateFromPlayer(testPlayer);
+      //need to update further states, return true to let know
+      return true;
       //need to check if new player status is same as before
       //if so do nothing, otherwise, need to call update chain?
    }
@@ -143,15 +167,34 @@ export class GameState
       return this.frameNumber;
    }
 
-   UpdateFromInput(keys:Record<string,boolean>)
+   CheckAndUpdateFromInput(keys:Record<string,boolean>): boolean
    {
-      this.awayWindow.UpdateFromInput(keys);
+      return this.awayWindow.CheckAndUpdateFromInput(keys);
    }
 
-   Update(keys:Record<string,boolean>) : void
+   ExtractHomePlayer(): Player
+   {
+      return this.homeWindow.ExtractPlayer();
+   }
+
+   SetHomePlayerBehavior(aPlayer:Player): void
+   {
+      return this.homeWindow.SetPlayerBehavior(aPlayer);
+   }
+
+   ExtractAwayPlayer(): Player
+   {
+      return this.awayWindow.ExtractPlayer();
+   }
+
+   SetAwayPlayerBehavior(aPlayer:Player): void
+   {
+      this.awayWindow.SetPlayerBehavior(aPlayer);
+   }
+
+   Update() : void
    {
       this.frameNumber++;
-      this.homeWindow.UpdateFromInput(keys);
 
       let transferBulletsToAway:Bullet[] = this.homeWindow.Update();
       let transferBulletsToHome:Bullet[] = this.awayWindow.Update();
@@ -166,11 +209,16 @@ export class GameState
       }
    }
 
-   NextFrame(keys:Record<string,boolean>) : GameState
+   UseInputAndGenerateNextFrame(keys:Record<string,boolean>): GameState
+   {
+      this.homeWindow.UpdateFromInput(keys);
+      return this.NextFrame();
+   }
+
+   NextFrame() : GameState
    {
       let nextGameState = this.Clone(); 
-
-      nextGameState.Update(keys);
+      nextGameState.Update();
       return nextGameState;
    }
 
@@ -211,47 +259,150 @@ export class GameEngine
       this.remoteFrame = this.initialFrame;
       this.syncFrame = this.initialFrame;
 
+      this.maxRollBackFrames = 99;
+      this.frameAdvantageLimit = 99;
+
       this.gameStates = new Array<GameState>();
       this.gameStates.push(new GameState(this.currentFrame));
    }
 
    Begin()
    {
-      //this.dataBuffer.Connect();
+      this.dataBuffer.Connect();
+   }
+
+   TimeSynched(): boolean
+   {
+      let localFrameAdvantage = this.localFrame - this.remoteFrame;
+      let frameAdvantageDifference = localFrameAdvantage - this.remoteFrameAdvantage;
+      return (localFrameAdvantage < this.maxRollBackFrames && frameAdvantageDifference < this.frameAdvantageLimit);
+   }
+   
+   //Combine Check with Update
+   CheckFrameAndUpdateInput(frameData:DataTransfer): boolean
+   {
+      let firstFrame = this.gameStates[0].Frame();
+      let index = frameData.Frame() - firstFrame;
+      return this.gameStates[index].CheckAndUpdateFromInput(frameData.Keys());
+   }
+
+   PredictAwayPlayerBehavior(aFrame:number)
+   {
+      let firstFrame = this.gameStates[0].Frame();
+      let index = aFrame - firstFrame;
+      let aPlayer = this.gameStates[index].ExtractAwayPlayer();
+      for(let i = index+1; i < this.gameStates.length; i++)
+      {
+         this.gameStates[i].SetAwayPlayerBehavior(aPlayer);
+      }
+   }
+
+   UpdateFromNetwork(): void
+   {
+      let needToUpdateChain:boolean = false;
+      let smallestUpdateFrame:number = Number.MAX_SAFE_INTEGER;
+      let largestRemoteFrame:number = 0;
+      while(!this.dataBuffer.Empty())
+      {
+         let frameData:DataTransfer = this.dataBuffer.Top();
+         if(frameData.Frame() > largestRemoteFrame)
+         {
+          largestRemoteFrame = frameData.Frame();  
+         }
+
+         if(this.CheckFrameAndUpdateInput(frameData))
+         //Check Frame Input means we need to create a container for
+         //input values of player, which are moveLeft, moveRight, and Firing
+         //and check if updated values are same as old values.
+         //Probably easiest to create a new Player object, have it process input
+         //Write a comparison function PlayerCompareInputs() and then a
+         //SetInputsByPlayer if needed.
+         {
+            //want to find the smallest numbered frame that needs update
+            if(frameData.Frame() < smallestUpdateFrame)
+            {
+               smallestUpdateFrame = frameData.Frame();
+            }
+
+            //if CheckFrame ever returns true, regardless of which frame
+            //it's on, we need to update current GameState. 
+            needToUpdateChain = true;
+         }
+      }
+      if(largestRemoteFrame > this.remoteFrame)
+      {
+         this.remoteFrame = largestRemoteFrame;
+         this.remoteFrameAdvantage = this.localFrame = this.remoteFrame;
+      }
+
+      if(needToUpdateChain)
+      {
+         //set predictive behavior of away Player from most recent remoteFrame
+         this.PredictAwayPlayerBehavior(this.remoteFrame);
+         this.syncFrame = smallestUpdateFrame - 1;
+      }
+      else
+      {
+         //all predictive frame inputs are fine, set sync frame to most recent
+         //frame with full data of home and away players
+         if(this.localFrame > this.remoteFrame)
+         {
+            this.syncFrame = this.remoteFrame;
+         }
+         else
+         {
+            this.syncFrame = this.localFrame;
+         }
+      }
+   }
+
+   ExecuteRollback(aFrame:number): void
+   {
+      let finalFrame:number = this.gameStates[this.gameStates.length - 1].Frame();
+      for(let i = aFrame; i < finalFrame; i++)
+      {
+         //need to save input states of these frames. Do we need to make deep copies?
+
+         let homePlayer = this.gameStates[i+1].ExtractHomePlayer();
+         let awayPlayer = this.gameStates[i+1].ExtractAwayPlayer();
+         
+         this.gameStates[i+1] = this.gameStates[i].NextFrame();
+         this.gameStates[i+1].SetHomePlayerBehavior(homePlayer);
+         this.gameStates[i+1].SetAwayPlayerBehavior(awayPlayer);
+      }
+
    }
 
    Update(keys:Record<string,boolean>)
    {
       //this.dataBuffer.Send(new GameState(this.currentFrame));
-      this.gameStates.push(this.gameStates[this.currentFrame].NextFrame(keys));
-      this.currentFrame++;
+      //this.gameStates.push(this.gameStates[this.currentFrame].NextFrame(keys));
+      //this.currentFrame++;
+      
+      //processes and network data and determines sync frame
+      this.UpdateFromNetwork(); 
 
-      //UpdateNetwork
-      //Pop frames from DataBuffer and use them to update GameStates on those frames
-      //remoteFrame = latest frame from remote client
-      //remoteFrameAdvantage = (localFrame - remoteFrame)
+      //Rollback Condition
+      if(this.localFrame > this.syncFrame && this.remoteFrame > this.syncFrame)
+      {
+         this.ExecuteRollback(this.syncFrame);
+      }
 
+      if(this.TimeSynched())
+      {
+         this.localFrame++;
+         let aDataTransfer = new DataTransfer(this.localFrame,keys);
+         this.dataBuffer.Send(aDataTransfer);
+
+         this.gameStates.push(
+            this.gameStates[this.gameStates.length - 1].UseInputAndGenerateNextFrame(keys)
+         );
+      }
 
    }
 
    Draw(aCtx:CanvasRenderingContext2D)
    {
       this.gameStates[this.gameStates.length - 1].Draw(aCtx);
-   }
-
-   UpdateFrame(aFrame:number, aInput:Record<string,boolean>)
-   {
-      let firstFrame = this.gameStates[0].Frame();
-      let index = aFrame - firstFrame;
-      this.gameStates[index].UpdateFromInput(aInput);
-   }
-
-   UpdateChain(aFrame:number)
-   {
-      let finalFrame:number = this.gameStates[this.gameStates.length - 1].Frame();
-      for(let i = aFrame; i < finalFrame; i++)
-      {
-         //this.gameStates[i+1] = this.gameStates[i].NextFrame();
-      }
    }
 }

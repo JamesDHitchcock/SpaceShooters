@@ -35,7 +35,7 @@ export class SpaceShooters
       this.gameEngine = new GameEngine();
       this.gameEngine.Begin();
       
-      this.desiredFPS = 30;
+      this.desiredFPS = 15;
       this.fpsInterval = 1000 / this.desiredFPS;
    }
 
@@ -101,16 +101,3 @@ export class SpaceShooters
    }
 }
 
-export class DataTransfer
-{
-   protected frameNumber:number
-   protected keys:Record<string,boolean> =
-   {
-      "a": false,
-      "d": false,
-      "ArrowLeft": false,
-      "ArrowRight": false,
-      "Enter": false,
-      "Space": false
-   }
-}
