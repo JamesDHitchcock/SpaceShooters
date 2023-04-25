@@ -65,6 +65,19 @@ export class Player extends Character {
             this.firing = false;
         }
     }
+    ComparePlayerInputState(aPlayer) {
+        if (aPlayer.moveLeft == this.moveLeft
+            && aPlayer.moveRight == this.moveRight
+            && aPlayer.firing == this.firing) {
+            return true;
+        }
+        return false;
+    }
+    SetPlayerInputStateFromPlayer(aPlayer) {
+        this.moveLeft = aPlayer.moveLeft;
+        this.moveRight = aPlayer.moveRight;
+        this.firing = aPlayer.firing;
+    }
     Firing() {
         return this.firing;
     }

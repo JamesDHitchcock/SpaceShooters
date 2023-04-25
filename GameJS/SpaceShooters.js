@@ -15,7 +15,7 @@ export class SpaceShooters {
         document.addEventListener('keydown', this.KeyDown.bind(this));
         this.gameEngine = new GameEngine();
         this.gameEngine.Begin();
-        this.desiredFPS = 30;
+        this.desiredFPS = 15;
         this.fpsInterval = 1000 / this.desiredFPS;
     }
     KeyDown(event) {
@@ -62,18 +62,6 @@ export class SpaceShooters {
     }
     GameLoop() {
         //this.stoppingTime = performance.now() + 10000;
-    }
-}
-export class DataTransfer {
-    constructor() {
-        this.keys = {
-            "a": false,
-            "d": false,
-            "ArrowLeft": false,
-            "ArrowRight": false,
-            "Enter": false,
-            "Space": false
-        };
     }
 }
 //# sourceMappingURL=SpaceShooters.js.map
