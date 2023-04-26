@@ -42,8 +42,9 @@ export class GameWindow
       {
          enemy.Update();
       });
-      if(this.enemies[0].CheckMovementSwap() 
-         || this.enemies[this.enemies.length - 1].CheckMovementSwap())
+      if(this.enemies.length > 0
+         && (this.enemies[0].CheckMovementSwap() 
+         || this.enemies[this.enemies.length - 1].CheckMovementSwap()))
       {
          this.enemies.forEach( (enemy) => 
          {
@@ -101,6 +102,11 @@ export class GameWindow
       return true;
       //need to check if new player status is same as before
       //if so do nothing, otherwise, need to call update chain?
+   }
+
+   RemoveAllEnemies()
+   {
+      this.enemies.splice(0,this.enemies.length);
    }
 
    Draw(aCtx:CanvasRenderingContext2D)
@@ -222,6 +228,12 @@ export class GameState
       return nextGameState;
    }
 
+   RemoveAllEnemies()
+   {
+      this.homeWindow.RemoveAllEnemies();
+      this.awayWindow.RemoveAllEnemies();
+   }
+
    Draw(aCtx:CanvasRenderingContext2D)
    {
       let aCanvas = <HTMLCanvasElement> document.getElementById("canvas");
@@ -247,6 +259,7 @@ export class GameEngine
    private remoteFrameAdvantage:number;
 
    private mode:string;
+   private waitMessage:string;
 
    constructor()
    {
@@ -263,7 +276,8 @@ export class GameEngine
       this.gameStates = new Array<GameState>();
       this.gameStates.push(new GameState(this.initialFrame));
 
-      this.mode = "sp"
+      this.mode = "wait"
+      this.waitMessage = "Choose Mode";
    }
 
    Begin(): void
@@ -281,7 +295,17 @@ export class GameEngine
       return this.mode == "mp";
    }
 
-   Reset(): void
+   WaitMode(): boolean
+   {
+      return this.mode == "wait";
+   }
+
+   WaitMessage(): string
+   {
+      return this.waitMessage;
+   }
+
+   Reset(aMode: string): void
    {
       this.initialFrame = 0;
       this.localFrame = this.initialFrame;
@@ -293,10 +317,18 @@ export class GameEngine
 
       this.gameStates = new Array<GameState>();
       this.gameStates.push(new GameState(this.initialFrame));
-      this.Begin();
-      
-      if(this.dataBuffer.ConnectionEstablished()) { this.mode = "mp";}
-      else { this.mode = "sp"; }
+
+      this.mode = aMode;
+
+      if(this.MultiPlayer())
+      {
+         this.Begin();
+         if(!this.dataBuffer.ConnectionEstablished())
+         {
+            this.mode = "wait";
+            this.waitMessage = "Connection Error";
+         }
+      }
    }
 
    TimeSynched(): boolean
@@ -439,6 +471,26 @@ export class GameEngine
          this.gameStates[lastIndex].SetAwayPlayerBehavior(aPlayer);
          this.gameStates.push(this.gameStates[lastIndex].NextFrame());
       }
+
+      if(this.WaitMode())
+      {
+         if(this.localFrame == 0)
+         {
+            this.RemoveAllEnemies();
+         }
+         this.localFrame++;
+         let aPlayer = new Player(0,0);
+         aPlayer.ProcessInput(keys);
+         let lastIndex = this.gameStates.length - 1;
+         this.gameStates[lastIndex].SetHomePlayerBehavior(aPlayer);
+         this.gameStates.push(this.gameStates[lastIndex].NextFrame());
+      }
+   }
+
+   RemoveAllEnemies()
+   {
+      let lastIndex = this.gameStates.length - 1;
+      this.gameStates[lastIndex].RemoveAllEnemies();
    }
 
    Draw(aCtx:CanvasRenderingContext2D)

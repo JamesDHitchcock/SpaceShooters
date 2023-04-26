@@ -10,6 +10,9 @@ export class SpaceShooters
    private elapsedDrawTime:number;
    private lastDrawTime:number;
    private currentDrawTime:number;
+   private font:string;
+   private fontSize:number;
+   private fontColor:string;
    //private stoppingTime:number;
 
    private gameEngine:GameEngine;
@@ -34,6 +37,10 @@ export class SpaceShooters
 
       this.gameEngine = new GameEngine();
       this.gameEngine.Begin();
+
+      this.fontSize = 48;
+      this.font = "Arial"
+      this.fontColor = "white";
       
       this.desiredFPS = 15;
       this.fpsInterval = 1000 / this.desiredFPS;
@@ -86,6 +93,18 @@ export class SpaceShooters
       this.ctx.setTransform(1,0,0,1,0,0);
       this.DrawStars();
       this.gameEngine.Draw(this.ctx);
+
+      this.ctx.setTransform(1,0,0,1,0,0);
+      if(this.gameEngine.WaitMode())
+      {
+         this.ctx.fillStyle = this.fontColor;
+         this.ctx.textAlign = "center"
+         this.ctx.font = "bold " + this.fontSize.toString() + "px " + this.font;
+
+         let xDraw = this.canvas.width/2;
+         let yDraw = this.canvas.height/2;
+         this.ctx.fillText(this.gameEngine.WaitMessage(),xDraw,yDraw);
+      }
    }
 
    public Begin(): void
@@ -94,9 +113,9 @@ export class SpaceShooters
       this.lastDrawTime = performance.now();
       this.Animate();
    }
-   Connect(): void
+   Reset(aMode:string): void
    {
-      this.gameEngine.Reset();
+      this.gameEngine.Reset(aMode);
    }
 }
 

@@ -23,8 +23,9 @@ export class GameWindow {
         this.enemies.forEach((enemy) => {
             enemy.Update();
         });
-        if (this.enemies[0].CheckMovementSwap()
-            || this.enemies[this.enemies.length - 1].CheckMovementSwap()) {
+        if (this.enemies.length > 0
+            && (this.enemies[0].CheckMovementSwap()
+                || this.enemies[this.enemies.length - 1].CheckMovementSwap())) {
             this.enemies.forEach((enemy) => {
                 enemy.SwapMovement();
             });
@@ -66,6 +67,9 @@ export class GameWindow {
         return true;
         //need to check if new player status is same as before
         //if so do nothing, otherwise, need to call update chain?
+    }
+    RemoveAllEnemies() {
+        this.enemies.splice(0, this.enemies.length);
     }
     Draw(aCtx) {
         this.player.Draw(aCtx);
@@ -132,6 +136,10 @@ export class GameState {
         nextGameState.Update();
         return nextGameState;
     }
+    RemoveAllEnemies() {
+        this.homeWindow.RemoveAllEnemies();
+        this.awayWindow.RemoveAllEnemies();
+    }
     Draw(aCtx) {
         let aCanvas = document.getElementById("canvas");
         aCtx.translate(0, (aCanvas.height / 2));
@@ -153,7 +161,8 @@ export class GameEngine {
         this.frameAdvantageLimit = 99;
         this.gameStates = new Array();
         this.gameStates.push(new GameState(this.initialFrame));
-        this.mode = "sp";
+        this.mode = "wait";
+        this.waitMessage = "Choose Mode";
     }
     Begin() {
         this.dataBuffer.Connect();
@@ -164,7 +173,13 @@ export class GameEngine {
     MultiPlayer() {
         return this.mode == "mp";
     }
-    Reset() {
+    WaitMode() {
+        return this.mode == "wait";
+    }
+    WaitMessage() {
+        return this.waitMessage;
+    }
+    Reset(aMode) {
         this.initialFrame = 0;
         this.localFrame = this.initialFrame;
         this.remoteFrame = this.initialFrame;
@@ -173,12 +188,13 @@ export class GameEngine {
         this.frameAdvantageLimit = 99;
         this.gameStates = new Array();
         this.gameStates.push(new GameState(this.initialFrame));
-        this.Begin();
-        if (this.dataBuffer.ConnectionEstablished()) {
-            this.mode = "mp";
-        }
-        else {
-            this.mode = "sp";
+        this.mode = aMode;
+        if (this.MultiPlayer()) {
+            this.Begin();
+            if (!this.dataBuffer.ConnectionEstablished()) {
+                this.mode = "wait";
+                this.waitMessage = "Connection Error";
+            }
         }
     }
     TimeSynched() {
@@ -284,6 +300,21 @@ export class GameEngine {
             this.gameStates[lastIndex].SetAwayPlayerBehavior(aPlayer);
             this.gameStates.push(this.gameStates[lastIndex].NextFrame());
         }
+        if (this.WaitMode()) {
+            if (this.localFrame == 0) {
+                this.RemoveAllEnemies();
+            }
+            this.localFrame++;
+            let aPlayer = new Player(0, 0);
+            aPlayer.ProcessInput(keys);
+            let lastIndex = this.gameStates.length - 1;
+            this.gameStates[lastIndex].SetHomePlayerBehavior(aPlayer);
+            this.gameStates.push(this.gameStates[lastIndex].NextFrame());
+        }
+    }
+    RemoveAllEnemies() {
+        let lastIndex = this.gameStates.length - 1;
+        this.gameStates[lastIndex].RemoveAllEnemies();
     }
     Draw(aCtx) {
         this.gameStates[this.gameStates.length - 1].Draw(aCtx);

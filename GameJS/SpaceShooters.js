@@ -15,6 +15,9 @@ export class SpaceShooters {
         document.addEventListener('keydown', this.KeyDown.bind(this));
         this.gameEngine = new GameEngine();
         this.gameEngine.Begin();
+        this.fontSize = 48;
+        this.font = "Arial";
+        this.fontColor = "white";
         this.desiredFPS = 15;
         this.fpsInterval = 1000 / this.desiredFPS;
     }
@@ -54,14 +57,23 @@ export class SpaceShooters {
         this.ctx.setTransform(1, 0, 0, 1, 0, 0);
         this.DrawStars();
         this.gameEngine.Draw(this.ctx);
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        if (this.gameEngine.WaitMode()) {
+            this.ctx.fillStyle = this.fontColor;
+            this.ctx.textAlign = "center";
+            this.ctx.font = "bold " + this.fontSize.toString() + "px " + this.font;
+            let xDraw = this.canvas.width / 2;
+            let yDraw = this.canvas.height / 2;
+            this.ctx.fillText(this.gameEngine.WaitMessage(), xDraw, yDraw);
+        }
     }
     Begin() {
         //begin animation
         this.lastDrawTime = performance.now();
         this.Animate();
     }
-    Connect() {
-        this.gameEngine.Reset();
+    Reset(aMode) {
+        this.gameEngine.Reset(aMode);
     }
 }
 //# sourceMappingURL=SpaceShooters.js.map
