@@ -32,22 +32,44 @@ export class Character
    {
       return this.posY;
    }
-   SetPos(aPosX,aPosY)
+   SetPos(aPosX,aPosY): void
    {
       this.posX = aPosX;
       this.posY = aPosY;
    }
-   Health()
+   Health(): number
    {
       return this.health;
    }
-   Height()
+   Height(): number
    {
       return this.height;
    }
-   Width()
+   Width(): number
    {
       return this.width;
+   }
+
+   TakeDamage(): void
+   {
+      this.health--;
+   }
+
+   CheckCollision(aCharacter:Character): boolean
+   {
+      //can only collide with a living object
+      if(aCharacter.Health() > 0)
+      {
+         let collisionCheck:boolean;
+         collisionCheck = (
+            ( (this.posY + this.height) < aCharacter.posY ) ||
+            ( this.posY > (aCharacter.posY + aCharacter.height) ) ||
+            ( (this.posX + this.width) <  aCharacter.posX ) ||
+            ( this.posX > (aCharacter.posX + aCharacter.height) )
+         )
+         return !collisionCheck;
+      }
+      return false;
    }
 }
 
@@ -165,6 +187,11 @@ export class Player extends Character
          }
          this.moveRight = false;
       }
+   }
+
+   TakeDamage(): void
+   {
+      this.health--;
    }
 
    Draw(aCtx:CanvasRenderingContext2D): void

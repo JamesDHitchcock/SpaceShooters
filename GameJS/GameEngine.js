@@ -47,10 +47,28 @@ export class GameWindow {
         for (let i = bulletsToRemove.length - 1; i >= 0; i--) {
             this.bullets.splice(bulletsToRemove[i], 1);
         }
+        //check for collisions before player fires to reduce load
+        //as there can be no collisions from player bullets on first frame
+        bulletsToRemove = new Array;
+        for (let i = 0; i < this.bullets.length; i++) {
+            if (this.bullets[i].CheckCollision(this.player)) {
+                bulletsToRemove.push(i);
+                this.player.TakeDamage();
+            }
+            this.enemies.forEach((enemy) => {
+                if (this.bullets[i].CheckCollision(enemy)) {
+                    bulletsToRemove.push(i);
+                    enemy.TakeDamage();
+                }
+            });
+        }
+        for (let i = bulletsToRemove.length - 1; i >= 0; i--) {
+            this.bullets.splice(bulletsToRemove[i], 1);
+        }
         if (this.player.Firing()) {
             this.bullets.push(this.player.FireBullet());
         }
-        //check for collisions
+        //calculate frames for when enemies fire
         return transferBullets;
     }
     UpdateFromInput(aInput) {

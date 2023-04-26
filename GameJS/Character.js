@@ -26,6 +26,21 @@ export class Character {
     Width() {
         return this.width;
     }
+    TakeDamage() {
+        this.health--;
+    }
+    CheckCollision(aCharacter) {
+        //can only collide with a living object
+        if (aCharacter.Health() > 0) {
+            let collisionCheck;
+            collisionCheck = (((this.posY + this.height) < aCharacter.posY) ||
+                (this.posY > (aCharacter.posY + aCharacter.height)) ||
+                ((this.posX + this.width) < aCharacter.posX) ||
+                (this.posX > (aCharacter.posX + aCharacter.height)));
+            return !collisionCheck;
+        }
+        return false;
+    }
 }
 export class Player extends Character {
     constructor(x, y) {
@@ -106,6 +121,9 @@ export class Player extends Character {
             }
             this.moveRight = false;
         }
+    }
+    TakeDamage() {
+        this.health--;
     }
     Draw(aCtx) {
         aCtx.fillStyle = this.fillStyle;
