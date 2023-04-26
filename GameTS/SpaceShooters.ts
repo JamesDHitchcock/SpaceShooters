@@ -98,9 +98,5 @@ export class SpaceShooters
    {
       this.gameEngine.Reset();
    }
-   public GameLoop(): void
-   {
-      //this.stoppingTime = performance.now() + 10000;
-   }
 }
 

@@ -153,9 +153,16 @@ export class GameEngine {
         this.frameAdvantageLimit = 99;
         this.gameStates = new Array();
         this.gameStates.push(new GameState(this.initialFrame));
+        this.mode = "sp";
     }
     Begin() {
         this.dataBuffer.Connect();
+    }
+    SinglePlayer() {
+        return this.mode == "sp";
+    }
+    MultiPlayer() {
+        return this.mode == "mp";
     }
     Reset() {
         this.initialFrame = 0;
@@ -166,6 +173,13 @@ export class GameEngine {
         this.frameAdvantageLimit = 99;
         this.gameStates = new Array();
         this.gameStates.push(new GameState(this.initialFrame));
+        this.Begin();
+        if (this.dataBuffer.ConnectionEstablished()) {
+            this.mode = "mp";
+        }
+        else {
+            this.mode = "sp";
+        }
     }
     TimeSynched() {
         if (this.dataBuffer.ConnectionEstablished()) {
@@ -247,17 +261,28 @@ export class GameEngine {
         }
     }
     Update(keys) {
-        //processes and network data and determines sync frame
-        this.UpdateFromNetwork();
-        //Rollback Condition
-        if (this.localFrame > this.syncFrame && this.remoteFrame > this.syncFrame) {
-            this.ExecuteRollback(this.syncFrame);
+        if (this.MultiPlayer()) {
+            //processes and network data and determines sync frame
+            this.UpdateFromNetwork();
+            //Rollback Condition
+            if (this.localFrame > this.syncFrame && this.remoteFrame > this.syncFrame) {
+                this.ExecuteRollback(this.syncFrame);
+            }
+            if (this.TimeSynched()) {
+                this.localFrame++;
+                let aDataTransfer = new DataTransfer(this.localFrame, keys);
+                this.dataBuffer.Send(aDataTransfer);
+                this.gameStates.push(this.gameStates[this.gameStates.length - 1].UseInputAndGenerateNextFrame(keys));
+            }
         }
-        if (this.TimeSynched()) {
+        if (this.SinglePlayer()) {
             this.localFrame++;
-            let aDataTransfer = new DataTransfer(this.localFrame, keys);
-            this.dataBuffer.Send(aDataTransfer);
-            this.gameStates.push(this.gameStates[this.gameStates.length - 1].UseInputAndGenerateNextFrame(keys));
+            let aPlayer = new Player(0, 0);
+            aPlayer.ProcessInput(keys);
+            let lastIndex = this.gameStates.length - 1;
+            this.gameStates[lastIndex].SetHomePlayerBehavior(aPlayer);
+            this.gameStates[lastIndex].SetAwayPlayerBehavior(aPlayer);
+            this.gameStates.push(this.gameStates[lastIndex].NextFrame());
         }
     }
     Draw(aCtx) {

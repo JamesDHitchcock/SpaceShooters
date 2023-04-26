@@ -63,8 +63,5 @@ export class SpaceShooters {
     Connect() {
         this.gameEngine.Reset();
     }
-    GameLoop() {
-        //this.stoppingTime = performance.now() + 10000;
-    }
 }
 //# sourceMappingURL=SpaceShooters.js.map

@@ -246,6 +246,7 @@ export class GameEngine
    private syncFrame:number;
    private remoteFrameAdvantage:number;
 
+   private mode:string;
 
    constructor()
    {
@@ -261,11 +262,23 @@ export class GameEngine
 
       this.gameStates = new Array<GameState>();
       this.gameStates.push(new GameState(this.initialFrame));
+
+      this.mode = "sp"
    }
 
    Begin(): void
    {
       this.dataBuffer.Connect();
+   }
+
+   SinglePlayer(): boolean
+   {
+      return this.mode == "sp";
+   }
+
+   MultiPlayer(): boolean
+   {
+      return this.mode == "mp";
    }
 
    Reset(): void
@@ -280,7 +293,10 @@ export class GameEngine
 
       this.gameStates = new Array<GameState>();
       this.gameStates.push(new GameState(this.initialFrame));
-      this.Begin(); 
+      this.Begin();
+      
+      if(this.dataBuffer.ConnectionEstablished()) { this.mode = "mp";}
+      else { this.mode = "sp"; }
    }
 
    TimeSynched(): boolean
@@ -391,24 +407,37 @@ export class GameEngine
 
    Update(keys:Record<string,boolean>)
    {
-      //processes and network data and determines sync frame
-      this.UpdateFromNetwork(); 
-
-      //Rollback Condition
-      if(this.localFrame > this.syncFrame && this.remoteFrame > this.syncFrame)
+      if(this.MultiPlayer())
       {
-         this.ExecuteRollback(this.syncFrame);
-      }
+         //processes and network data and determines sync frame
+         this.UpdateFromNetwork(); 
 
-      if(this.TimeSynched())
+         //Rollback Condition
+         if(this.localFrame > this.syncFrame && this.remoteFrame > this.syncFrame)
+         {
+            this.ExecuteRollback(this.syncFrame);
+         }
+
+         if(this.TimeSynched())
+         {
+            this.localFrame++;
+            let aDataTransfer = new DataTransfer(this.localFrame,keys);
+            this.dataBuffer.Send(aDataTransfer);
+
+            this.gameStates.push(
+               this.gameStates[this.gameStates.length - 1].UseInputAndGenerateNextFrame(keys)
+            );
+         }
+      }
+      if(this.SinglePlayer())
       {
          this.localFrame++;
-         let aDataTransfer = new DataTransfer(this.localFrame,keys);
-         this.dataBuffer.Send(aDataTransfer);
-
-         this.gameStates.push(
-            this.gameStates[this.gameStates.length - 1].UseInputAndGenerateNextFrame(keys)
-         );
+         let aPlayer = new Player(0,0);
+         aPlayer.ProcessInput(keys);
+         let lastIndex = this.gameStates.length - 1;
+         this.gameStates[lastIndex].SetHomePlayerBehavior(aPlayer);
+         this.gameStates[lastIndex].SetAwayPlayerBehavior(aPlayer);
+         this.gameStates.push(this.gameStates[lastIndex].NextFrame());
       }
    }
 
