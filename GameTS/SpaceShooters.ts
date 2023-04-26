@@ -75,6 +75,41 @@ export class SpaceShooters
       }
    }
 
+   private DrawHealthBar(): void
+   {
+      let numRedSquares:number = this.gameEngine.MaxHealthPool() - this.gameEngine.PlayerHealthPool();
+
+      if(numRedSquares > this.gameEngine.MaxHealthPool())
+      {
+         numRedSquares = this.gameEngine.MaxHealthPool();
+      }
+
+      let numGreenSquares:number = this.gameEngine.MaxHealthPool() - numRedSquares;
+
+      let x = 0.1 * this.canvas.width;
+      let xWidth = Math.floor( (0.8 * this.canvas.width) / (this.gameEngine.MaxHealthPool()) );
+      let y = this.canvas.height - 40;
+      let yHeight = 30;
+      let indent = 2;
+      for(let i = 0; i < numGreenSquares; i++)
+      {
+         this.ctx.fillStyle = 'white';
+         this.ctx.fillRect(x + (i*xWidth),y,xWidth,yHeight);
+
+         this.ctx.fillStyle = 'green';
+         this.ctx.fillRect( (x + (i*xWidth))+indent,y+indent,xWidth - 2*indent, yHeight - 2*indent);
+      }
+      for(let i = numGreenSquares; i < this.gameEngine.MaxHealthPool(); i++)
+      {
+         this.ctx.fillStyle = 'white';
+         this.ctx.fillRect(x + (i*xWidth),y,xWidth,yHeight);
+
+         this.ctx.fillStyle = 'red';
+         this.ctx.fillRect( (x + (i*xWidth))+indent,y+indent,xWidth - 2*indent, yHeight - 2*indent);
+      }
+
+   }
+
    Animate()
    {
       requestAnimationFrame(() => this.Animate());
@@ -95,6 +130,9 @@ export class SpaceShooters
       this.gameEngine.Draw(this.ctx);
 
       this.ctx.setTransform(1,0,0,1,0,0);
+      
+      this.DrawHealthBar();
+
       if(this.gameEngine.WaitMode())
       {
          this.ctx.fillStyle = this.fontColor;

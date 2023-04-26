@@ -32,10 +32,18 @@ export class Character
    {
       return this.posY;
    }
-   SetPos(aPosX,aPosY): void
+   SetPos(aPosX:number,aPosY:number): void
    {
       this.posX = aPosX;
       this.posY = aPosY;
+   }
+   ToMove(): number
+   {
+      return this.toMove;
+   }
+   SetToMove(aValue:number)
+   {
+      this.toMove = aValue;
    }
    Health(): number
    {
@@ -65,7 +73,7 @@ export class Character
             ( (this.posY + this.height) < aCharacter.posY ) ||
             ( this.posY > (aCharacter.posY + aCharacter.height) ) ||
             ( (this.posX + this.width) <  aCharacter.posX ) ||
-            ( this.posX > (aCharacter.posX + aCharacter.height) )
+            ( this.posX > (aCharacter.posX + aCharacter.width) )
          )
          return !collisionCheck;
       }
@@ -79,6 +87,8 @@ export class Player extends Character
    moveLeft:boolean;
    moveRight:boolean;
    firing:boolean;
+   frameLastFired:number;
+   framesBetweenShots:number;
    timeSinceHit:number;
 
    constructor(x:number,y:number)
@@ -86,10 +96,14 @@ export class Player extends Character
       super(x,y);
       this.moveLeft = false;
       this.moveRight = false;
+
       this.firing = false;
+      this.framesBetweenShots = 3;
+      this.frameLastFired = -this.framesBetweenShots;
+
       this.toMove = 20;
       this.posX = 288;
-      this.posY = 300;
+      this.posY = 290;
       this.width = 50;
       this.height = 50;
       this.fillStyle = "yellow";
@@ -132,6 +146,24 @@ export class Player extends Character
          this.firing = false;
       }
    }
+   CheckCollision(aCharacter:Character): boolean
+   {
+      let collisionCheck:boolean;
+      //player is drawn as a triangle with x,y at top of triangle.
+      //want player to be the rectangle starting at point half width from top
+      let xPos = this.posX - this.width/2;
+      let yPos = this.posY;
+
+      //Give player a little more leeway on taking damage
+      let indent = 10;
+      collisionCheck = (
+         ( (yPos + this.height - indent) < aCharacter.PosY() ) ||
+         ( yPos + indent > (aCharacter.PosY() + aCharacter.Height()) ) ||
+         ( (xPos + this.width - indent) <  aCharacter.PosX() ) ||
+         ( xPos + indent > (aCharacter.PosX() + aCharacter.Width()) )
+      )
+      return !collisionCheck;
+   }
 
    ComparePlayerInputState(aPlayer: Player): boolean
    {
@@ -151,13 +183,14 @@ export class Player extends Character
       this.firing = aPlayer.firing;
    }
 
-   Firing(): boolean
+   Firing(aFrame:number): boolean
    {
-      return this.firing;
+      return this.firing && (aFrame > this.frameLastFired + this.framesBetweenShots);
    }
 
-   FireBullet(): Bullet   
+   FireBullet(aFrame:number): Bullet   
    {
+      this.frameLastFired = aFrame;
       let aBullet = new Bullet(0,0);
       aBullet.SetPos(this.posX-aBullet.Width()/2, this.posY-aBullet.Height());
       aBullet.SetFiredByPlayer();
@@ -170,22 +203,20 @@ export class Player extends Character
       {
          let prev = this.posX;
          this.posX -= this.toMove;
-         if(this.posX < 20){
+         if(this.posX < this.width/2){
             //half player width from edge
             this.posX = prev;
          }
-         this.moveLeft = false;
       }
 
       if(this.moveRight)
       {
          let prev = this.posX;
          this.posX += this.toMove;
-         if(this.posX > 480){//need canvas link
-            //do we link in player or do we create class that holds Update?
+         let aCanvas = <HTMLCanvasElement> document.getElementById("canvas");
+         if(this.posX > (aCanvas.width - this.width/2) ){
             this.posX = prev;
          }
-         this.moveRight = false;
       }
    }
 
@@ -209,6 +240,8 @@ export class Player extends Character
 export class Enemy extends Character
 {
    private moveLeft:boolean
+   frameLastFired:number;
+   framesBetweenShots:number;
    constructor(x:number,y:number)
    {
       super(x,y);
@@ -218,6 +251,9 @@ export class Enemy extends Character
       this.health = 3;
       this.toMove = 30;
       this.moveLeft = true;
+
+      this.frameLastFired = 0;
+      this.framesBetweenShots = 9;
    }
 
    SwapMovement()
@@ -236,6 +272,22 @@ export class Enemy extends Character
          return true;
       }
       return false;
+   }
+
+   Firing(aFrame:number): boolean
+   {
+      return ( (aFrame > (this.frameLastFired + this.framesBetweenShots))
+               && this.health > 0);
+   }
+
+   FireBullet(aFrame:number): Bullet   
+   {
+      this.frameLastFired = aFrame;
+      let aBullet = new Bullet(0,0);
+      aBullet.SetPos(this.posX + this.width/2 - aBullet.Width()/2, 
+                     this.posY + this.height);
+      aBullet.SetToMove(aBullet.ToMove()/2);
+      return aBullet;
    }
 
    Update(): void 
@@ -315,7 +367,10 @@ export class Bullet extends Character
    
    Draw(aCtx:CanvasRenderingContext2D): void
    {
-      aCtx.fillStyle = this.fillStyle; 
+      aCtx.fillStyle = "white";
       aCtx.fillRect(this.posX,this.posY,this.width,this.height);
+      let indent = 2;
+      aCtx.fillStyle = this.fillStyle; 
+      aCtx.fillRect(this.posX + indent,this.posY + indent,this.width-2*indent,this.height-2*indent);
    }
 }

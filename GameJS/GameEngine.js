@@ -6,7 +6,7 @@ export class GameWindow {
         this.enemies = new Array();
         this.bullets = new Array();
         for (let i = 0; i < 3; i++) {
-            this.enemies.push(new Enemy(80 + i * 80, 50));
+            this.enemies.push(new Enemy(80 + i * 100, 50));
         }
     }
     AddBullets(transferBullets) {
@@ -18,7 +18,16 @@ export class GameWindow {
     SetPlayerBehavior(aPlayer) {
         this.player.SetPlayerInputStateFromPlayer(aPlayer);
     }
-    Update() {
+    EnemiesAllGone() {
+        let allGone = true;
+        this.enemies.forEach((enemy) => {
+            if (enemy.Health() > 0) {
+                allGone = false;
+            }
+        });
+        return allGone;
+    }
+    Update(aFrame) {
         this.player.Update();
         this.enemies.forEach((enemy) => {
             enemy.Update();
@@ -51,7 +60,7 @@ export class GameWindow {
         //as there can be no collisions from player bullets on first frame
         bulletsToRemove = new Array;
         for (let i = 0; i < this.bullets.length; i++) {
-            if (this.bullets[i].CheckCollision(this.player)) {
+            if (this.player.CheckCollision(this.bullets[i])) {
                 bulletsToRemove.push(i);
                 this.player.TakeDamage();
             }
@@ -65,10 +74,14 @@ export class GameWindow {
         for (let i = bulletsToRemove.length - 1; i >= 0; i--) {
             this.bullets.splice(bulletsToRemove[i], 1);
         }
-        if (this.player.Firing()) {
-            this.bullets.push(this.player.FireBullet());
+        if (this.player.Firing(aFrame)) {
+            this.bullets.push(this.player.FireBullet(aFrame));
         }
-        //calculate frames for when enemies fire
+        this.enemies.forEach((enemy) => {
+            if (enemy.Firing(aFrame)) {
+                this.bullets.push(enemy.FireBullet(aFrame));
+            }
+        });
         return transferBullets;
     }
     UpdateFromInput(aInput) {
@@ -134,10 +147,17 @@ export class GameState {
     SetAwayPlayerBehavior(aPlayer) {
         this.awayWindow.SetPlayerBehavior(aPlayer);
     }
+    PlayerHealthPool() {
+        return (this.homeWindow.ExtractPlayer().Health()
+            + this.awayWindow.ExtractPlayer().Health()) - 10;
+    }
+    EnemiesAllGone() {
+        return (this.homeWindow.EnemiesAllGone() && this.awayWindow.EnemiesAllGone());
+    }
     Update() {
         this.frameNumber++;
-        let transferBulletsToAway = this.homeWindow.Update();
-        let transferBulletsToHome = this.awayWindow.Update();
+        let transferBulletsToAway = this.homeWindow.Update(this.frameNumber);
+        let transferBulletsToHome = this.awayWindow.Update(this.frameNumber);
         if (transferBulletsToAway.length > 0) {
             this.awayWindow.AddBullets(transferBulletsToAway);
         }
@@ -177,6 +197,7 @@ export class GameEngine {
         this.syncFrame = this.initialFrame;
         this.maxRollBackFrames = 99;
         this.frameAdvantageLimit = 99;
+        this.maxHealthPool = 10;
         this.gameStates = new Array();
         this.gameStates.push(new GameState(this.initialFrame));
         this.mode = "wait";
@@ -196,6 +217,15 @@ export class GameEngine {
     }
     WaitMessage() {
         return this.waitMessage;
+    }
+    PlayerHealthPool() {
+        return this.gameStates[this.gameStates.length - 1].PlayerHealthPool();
+    }
+    MaxHealthPool() {
+        return this.maxHealthPool;
+    }
+    EnemiesAllGone() {
+        return this.gameStates[this.gameStates.length - 1].EnemiesAllGone();
     }
     Reset(aMode) {
         this.initialFrame = 0;
@@ -294,6 +324,16 @@ export class GameEngine {
             this.gameStates[i + 1].SetAwayPlayerBehavior(awayPlayer);
         }
     }
+    CheckGameState() {
+        if (this.PlayerHealthPool() <= 0) {
+            this.mode = "wait";
+            this.waitMessage = "You Lose";
+        }
+        if (this.EnemiesAllGone()) {
+            this.mode = "wait";
+            this.waitMessage = "You Win!";
+        }
+    }
     Update(keys) {
         if (this.MultiPlayer()) {
             //processes and network data and determines sync frame
@@ -308,6 +348,7 @@ export class GameEngine {
                 this.dataBuffer.Send(aDataTransfer);
                 this.gameStates.push(this.gameStates[this.gameStates.length - 1].UseInputAndGenerateNextFrame(keys));
             }
+            this.CheckGameState();
         }
         if (this.SinglePlayer()) {
             this.localFrame++;
@@ -317,6 +358,7 @@ export class GameEngine {
             this.gameStates[lastIndex].SetHomePlayerBehavior(aPlayer);
             this.gameStates[lastIndex].SetAwayPlayerBehavior(aPlayer);
             this.gameStates.push(this.gameStates[lastIndex].NextFrame());
+            this.CheckGameState();
         }
         if (this.WaitMode()) {
             if (this.localFrame == 0) {
@@ -324,8 +366,9 @@ export class GameEngine {
             }
             this.localFrame++;
             let aPlayer = new Player(0, 0);
-            aPlayer.ProcessInput(keys);
             let lastIndex = this.gameStates.length - 1;
+            this.gameStates[lastIndex].SetAwayPlayerBehavior(aPlayer);
+            aPlayer.ProcessInput(keys);
             this.gameStates[lastIndex].SetHomePlayerBehavior(aPlayer);
             this.gameStates.push(this.gameStates[lastIndex].NextFrame());
         }

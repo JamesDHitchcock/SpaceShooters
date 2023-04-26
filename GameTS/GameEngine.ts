@@ -15,7 +15,7 @@ export class GameWindow
 
       for(let i = 0; i < 3; i++)
       {
-         this.enemies.push(new Enemy(80 + i * 80,50));
+         this.enemies.push(new Enemy(80 + i * 100,50));
       }
    }
 
@@ -34,7 +34,21 @@ export class GameWindow
       this.player.SetPlayerInputStateFromPlayer(aPlayer);
    }
 
-   Update() : Bullet[]
+   EnemiesAllGone(): boolean
+   {
+      let allGone = true;
+      this.enemies.forEach( (enemy) => 
+      {
+         if(enemy.Health() > 0)
+         {
+            allGone = false;
+         }
+      });
+
+      return allGone;
+   }
+
+   Update(aFrame:number) : Bullet[]
    {
       this.player.Update();
 
@@ -80,7 +94,7 @@ export class GameWindow
 
       for(let i = 0; i < this.bullets.length; i++)
       {
-         if(this.bullets[i].CheckCollision(this.player))
+         if(this.player.CheckCollision(this.bullets[i]))
          {
             bulletsToRemove.push(i);
             this.player.TakeDamage();
@@ -101,12 +115,18 @@ export class GameWindow
          this.bullets.splice(bulletsToRemove[i], 1);
       }
 
-      if(this.player.Firing())
+      if(this.player.Firing(aFrame))
       {
-         this.bullets.push(this.player.FireBullet());
+         this.bullets.push(this.player.FireBullet(aFrame));
       }
 
-      //calculate frames for when enemies fire
+      this.enemies.forEach( (enemy) =>
+      {
+         if(enemy.Firing(aFrame))
+         {
+            this.bullets.push(enemy.FireBullet(aFrame));
+         }
+      });
 
       return transferBullets;
    }
@@ -226,12 +246,24 @@ export class GameState
       this.awayWindow.SetPlayerBehavior(aPlayer);
    }
 
+   PlayerHealthPool()
+   {
+      return (this.homeWindow.ExtractPlayer().Health()
+               + this.awayWindow.ExtractPlayer().Health()
+             ) - 10;
+   }
+
+   EnemiesAllGone(): boolean
+   {
+      return (this.homeWindow.EnemiesAllGone() && this.awayWindow.EnemiesAllGone());
+   }
+
    Update() : void
    {
       this.frameNumber++;
 
-      let transferBulletsToAway:Bullet[] = this.homeWindow.Update();
-      let transferBulletsToHome:Bullet[] = this.awayWindow.Update();
+      let transferBulletsToAway:Bullet[] = this.homeWindow.Update(this.frameNumber);
+      let transferBulletsToHome:Bullet[] = this.awayWindow.Update(this.frameNumber);
       
       if(transferBulletsToAway.length > 0)
       {
@@ -277,6 +309,7 @@ export class GameEngine
 {
    private gameStates:GameState[];
    private dataBuffer:DataBuffer;
+   private maxHealthPool:number;
 
    private maxRollBackFrames:number;
    private frameAdvantageLimit:number;
@@ -300,6 +333,8 @@ export class GameEngine
 
       this.maxRollBackFrames = 99;
       this.frameAdvantageLimit = 99;
+
+      this.maxHealthPool = 10;
 
       this.gameStates = new Array<GameState>();
       this.gameStates.push(new GameState(this.initialFrame));
@@ -331,6 +366,21 @@ export class GameEngine
    WaitMessage(): string
    {
       return this.waitMessage;
+   }
+
+   PlayerHealthPool(): number
+   {
+      return this.gameStates[this.gameStates.length - 1].PlayerHealthPool();
+   }
+
+   MaxHealthPool(): number
+   {
+      return this.maxHealthPool;
+   }
+
+   EnemiesAllGone(): boolean
+   {
+      return this.gameStates[this.gameStates.length - 1].EnemiesAllGone();
    }
 
    Reset(aMode: string): void
@@ -465,6 +515,20 @@ export class GameEngine
 
    }
 
+   CheckGameState(): void
+   {
+      if(this.PlayerHealthPool() <= 0)
+      {
+         this.mode = "wait";
+         this.waitMessage = "You Lose";
+      }
+      if(this.EnemiesAllGone())
+      {
+         this.mode = "wait";
+         this.waitMessage = "You Win!";
+      }
+   }
+
    Update(keys:Record<string,boolean>)
    {
       if(this.MultiPlayer())
@@ -488,6 +552,7 @@ export class GameEngine
                this.gameStates[this.gameStates.length - 1].UseInputAndGenerateNextFrame(keys)
             );
          }
+         this.CheckGameState();
       }
       if(this.SinglePlayer())
       {
@@ -498,6 +563,7 @@ export class GameEngine
          this.gameStates[lastIndex].SetHomePlayerBehavior(aPlayer);
          this.gameStates[lastIndex].SetAwayPlayerBehavior(aPlayer);
          this.gameStates.push(this.gameStates[lastIndex].NextFrame());
+         this.CheckGameState();
       }
 
       if(this.WaitMode())
@@ -508,8 +574,9 @@ export class GameEngine
          }
          this.localFrame++;
          let aPlayer = new Player(0,0);
-         aPlayer.ProcessInput(keys);
          let lastIndex = this.gameStates.length - 1;
+         this.gameStates[lastIndex].SetAwayPlayerBehavior(aPlayer);
+         aPlayer.ProcessInput(keys);
          this.gameStates[lastIndex].SetHomePlayerBehavior(aPlayer);
          this.gameStates.push(this.gameStates[lastIndex].NextFrame());
       }
