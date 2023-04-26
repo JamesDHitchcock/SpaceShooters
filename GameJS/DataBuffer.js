@@ -21,6 +21,8 @@ export class DataTransfer {
 }
 export class DataBuffer {
     constructor() {
+        this.dataBuffer = new Array();
+        this.connectionEstablished = false;
         this.peerInfo = new Peer();
         this.peerInfo.on('open', (id) => {
             var peerIdEle = document.getElementById("peerId");
@@ -33,24 +35,33 @@ export class DataBuffer {
         });
     }
     Connect() {
-        this.dataCon = this.peerInfo.connect(document.getElementById("connectId").textContent);
-        //need error checking
-        this.dataCon.on('open', function () {
-            //Receive messages
-            this.dataCon.on('data', (data) => {
-                this.dataBuffer.push(data);
-                console.log(`received: ${data}`);
+        let connectText = document.getElementById("connectId").textContent;
+        if (connectText.length > 2) {
+            this.dataCon = this.peerInfo.connect(connectText);
+            this.connectionEstablished = true;
+            //need error checking
+            this.dataCon.on('open', function () {
+                //Receive messages
+                this.dataCon.on('data', (data) => {
+                    this.dataBuffer.push(data);
+                    console.log(`received: ${data}`);
+                });
             });
-        });
+        }
     }
     Top() {
         return this.dataBuffer.shift();
     }
     Empty() {
-        return (this.dataBuffer.length > 0);
+        return (this.dataBuffer.length == 0);
+    }
+    ConnectionEstablished() {
+        return this.connectionEstablished;
     }
     Send(dataToSend) {
-        this.dataCon.send(dataToSend);
+        if (this.connectionEstablished) {
+            this.dataCon.send(dataToSend);
+        }
     }
 }
 //# sourceMappingURL=DataBuffer.js.map

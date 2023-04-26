@@ -159,9 +159,12 @@ export class GameEngine {
         this.dataBuffer.Connect();
     }
     TimeSynched() {
-        let localFrameAdvantage = this.localFrame - this.remoteFrame;
-        let frameAdvantageDifference = localFrameAdvantage - this.remoteFrameAdvantage;
-        return (localFrameAdvantage < this.maxRollBackFrames && frameAdvantageDifference < this.frameAdvantageLimit);
+        if (this.dataBuffer.ConnectionEstablished()) {
+            let localFrameAdvantage = this.localFrame - this.remoteFrame;
+            let frameAdvantageDifference = localFrameAdvantage - this.remoteFrameAdvantage;
+            return (localFrameAdvantage < this.maxRollBackFrames && frameAdvantageDifference < this.frameAdvantageLimit);
+        }
+        return true;
     }
     //Combine Check with Update
     CheckFrameAndUpdateInput(frameData) {
@@ -235,9 +238,6 @@ export class GameEngine {
         }
     }
     Update(keys) {
-        //this.dataBuffer.Send(new GameState(this.currentFrame));
-        //this.gameStates.push(this.gameStates[this.currentFrame].NextFrame(keys));
-        //this.currentFrame++;
         //processes and network data and determines sync frame
         this.UpdateFromNetwork();
         //Rollback Condition

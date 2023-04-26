@@ -10,7 +10,7 @@ export class SpaceShooters
    private elapsedDrawTime:number;
    private lastDrawTime:number;
    private currentDrawTime:number;
-   private stoppingTime:number;
+   //private stoppingTime:number;
 
    private gameEngine:GameEngine;
    

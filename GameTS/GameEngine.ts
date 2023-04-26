@@ -273,9 +273,13 @@ export class GameEngine
 
    TimeSynched(): boolean
    {
-      let localFrameAdvantage = this.localFrame - this.remoteFrame;
-      let frameAdvantageDifference = localFrameAdvantage - this.remoteFrameAdvantage;
-      return (localFrameAdvantage < this.maxRollBackFrames && frameAdvantageDifference < this.frameAdvantageLimit);
+      if(this.dataBuffer.ConnectionEstablished())
+      {
+         let localFrameAdvantage = this.localFrame - this.remoteFrame;
+         let frameAdvantageDifference = localFrameAdvantage - this.remoteFrameAdvantage;
+         return (localFrameAdvantage < this.maxRollBackFrames && frameAdvantageDifference < this.frameAdvantageLimit);
+      }
+      return true;
    }
    
    //Combine Check with Update
@@ -375,10 +379,6 @@ export class GameEngine
 
    Update(keys:Record<string,boolean>)
    {
-      //this.dataBuffer.Send(new GameState(this.currentFrame));
-      //this.gameStates.push(this.gameStates[this.currentFrame].NextFrame(keys));
-      //this.currentFrame++;
-      
       //processes and network data and determines sync frame
       this.UpdateFromNetwork(); 
 
@@ -398,7 +398,6 @@ export class GameEngine
             this.gameStates[this.gameStates.length - 1].UseInputAndGenerateNextFrame(keys)
          );
       }
-
    }
 
    Draw(aCtx:CanvasRenderingContext2D)
