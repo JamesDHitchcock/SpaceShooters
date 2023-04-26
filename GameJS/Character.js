@@ -34,7 +34,7 @@ export class Player extends Character {
         this.moveRight = false;
         this.firing = false;
         this.toMove = 20;
-        this.posX = 144;
+        this.posX = 288;
         this.posY = 300;
         this.width = 50;
         this.height = 50;

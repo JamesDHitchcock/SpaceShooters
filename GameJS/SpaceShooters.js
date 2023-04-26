@@ -60,6 +60,9 @@ export class SpaceShooters {
         this.lastDrawTime = performance.now();
         this.Animate();
     }
+    Connect() {
+        this.gameEngine.Reset();
+    }
     GameLoop() {
         //this.stoppingTime = performance.now() + 10000;
     }

@@ -237,7 +237,6 @@ export class GameEngine
 {
    private gameStates:GameState[];
    private dataBuffer:DataBuffer;
-   private currentFrame:number;
 
    private maxRollBackFrames:number;
    private frameAdvantageLimit:number;
@@ -252,8 +251,6 @@ export class GameEngine
    {
       //Init player data
       this.dataBuffer = new DataBuffer();
-      this.currentFrame = 0;
-
       this.initialFrame = 0;
       this.localFrame = this.initialFrame;
       this.remoteFrame = this.initialFrame;
@@ -263,12 +260,27 @@ export class GameEngine
       this.frameAdvantageLimit = 99;
 
       this.gameStates = new Array<GameState>();
-      this.gameStates.push(new GameState(this.currentFrame));
+      this.gameStates.push(new GameState(this.initialFrame));
    }
 
-   Begin()
+   Begin(): void
    {
       this.dataBuffer.Connect();
+   }
+
+   Reset(): void
+   {
+      this.initialFrame = 0;
+      this.localFrame = this.initialFrame;
+      this.remoteFrame = this.initialFrame;
+      this.syncFrame = this.initialFrame;
+
+      this.maxRollBackFrames = 99;
+      this.frameAdvantageLimit = 99;
+
+      this.gameStates = new Array<GameState>();
+      this.gameStates.push(new GameState(this.initialFrame));
+      this.Begin(); 
    }
 
    TimeSynched(): boolean

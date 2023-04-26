@@ -9,6 +9,11 @@ function setUpSpaceShooters(){
    globalThis.game.Begin();
 }
 
+function startSpaceShooters()
+{
+   globalThis.game.Connect();
+}
+
 window.onload=function(){
    setUpSpaceShooters();
 }
@@ -16,5 +21,5 @@ window.onload=function(){
 document.getElementById("connectButton").addEventListener("click", ConnectAndPlay, false);
 
 function ConnectAndPlay(){
-   setUpSpaceShooters();
+   startSpaceShooters();
 }
