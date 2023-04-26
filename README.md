@@ -7,3 +7,5 @@ In multiplayer, connections and data transfer are performed using PeerJS (https:
 In singleplayer, the player controls both the top and bottom ship at once.
 
 The game is still a work in progress, as I work to update enemy behavior, connectivity issues, and create pixel art.
+
+You can see the most recent version of the game in action on my Github Page at https://jamesdhitchcock.github.io/
