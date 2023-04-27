@@ -51,12 +51,28 @@ export class SpaceShooters
       if(event.key in this.keys){
          this.keys[event.key] = true;
       }
+      if(event.key == "A")
+      {
+         this.keys["a"] = true;
+      }
+      if(event.key == "D")
+      {
+         this.keys["d"] = true;
+      }
    }
 
    private KeyUp(event:KeyboardEvent): void
    {
       if(event.key in this.keys){
          this.keys[event.key] = false;
+      }
+      if(event.key == "A")
+      {
+         this.keys["a"] = false;
+      }
+      if(event.key == "D")
+      {
+         this.keys["d"] = false;
       }
    }
 

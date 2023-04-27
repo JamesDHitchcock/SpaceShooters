@@ -166,7 +166,7 @@ export class Enemy extends Character {
         this.toMove = 30;
         this.moveLeft = true;
         this.frameLastFired = 0;
-        this.framesBetweenShots = 9;
+        this.framesBetweenShots = 12;
     }
     SwapMovement() {
         this.moveLeft = !this.moveLeft;

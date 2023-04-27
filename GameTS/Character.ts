@@ -253,7 +253,7 @@ export class Enemy extends Character
       this.moveLeft = true;
 
       this.frameLastFired = 0;
-      this.framesBetweenShots = 9;
+      this.framesBetweenShots = 12;
    }
 
    SwapMovement()
