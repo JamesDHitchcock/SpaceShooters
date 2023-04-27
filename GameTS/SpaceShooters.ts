@@ -76,6 +76,11 @@ export class SpaceShooters
       }
    }
 
+   AlertConnection(): void
+   {
+      this.gameEngine.AlertConnection();
+   }
+
    private DrawStars(): void
    {
       this.ctx.fillStyle='black';

@@ -33,19 +33,26 @@ export class DataBuffer {
             var peerIdEle = document.getElementById("peerId");
             peerIdEle.value = error;
         });
+        this.peerInfo.on('connection', (conn) => {
+            this.dataCon = conn;
+            this.connectionEstablished = true;
+            globalThis.game.AlertConnection();
+            this.dataCon.on('data', (data) => {
+                this.dataBuffer.push(data);
+            });
+        });
     }
     Connect() {
-        let connectText = document.getElementById("connectId").textContent;
+        let connectEle = document.getElementById("connectId");
+        let connectText = connectEle.value;
         if (connectText.length > 2) {
             this.dataCon = this.peerInfo.connect(connectText);
             this.connectionEstablished = true;
             //need error checking
-            this.dataCon.on('open', function () {
-                //Receive messages
-                this.dataCon.on('data', (data) => {
-                    this.dataBuffer.push(data);
-                    console.log(`received: ${data}`);
-                });
+            this.dataCon.on('open', () => {
+            });
+            this.dataCon.on('data', (data) => {
+                this.dataBuffer.push(data);
             });
         }
     }

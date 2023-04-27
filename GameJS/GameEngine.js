@@ -227,6 +227,13 @@ export class GameEngine {
     EnemiesAllGone() {
         return this.gameStates[this.gameStates.length - 1].EnemiesAllGone();
     }
+    AlertConnection() {
+        //want to reset to wait mode, and then go into multiplayer since
+        //connection should now be established from other client that initiated
+        //and no need for us to iniate back.
+        this.Reset("wait");
+        this.mode = "mp";
+    }
     Reset(aMode) {
         this.initialFrame = 0;
         this.localFrame = this.initialFrame;
