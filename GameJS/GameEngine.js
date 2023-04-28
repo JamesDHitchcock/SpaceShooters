@@ -187,6 +187,8 @@ export class GameState {
         this.awayWindow.Draw(aCtx);
     }
 }
+//To help deal with desync issues, let's try and make sure game starts
+//at same time on both computers?
 export class GameEngine {
     constructor() {
         //Init player data

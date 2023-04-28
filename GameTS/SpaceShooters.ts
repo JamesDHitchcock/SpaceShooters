@@ -42,7 +42,7 @@ export class SpaceShooters
       this.font = "Arial"
       this.fontColor = "white";
       
-      this.desiredFPS = 10;
+      this.desiredFPS = 15;
       this.fpsInterval = 1000 / this.desiredFPS;
    }
 

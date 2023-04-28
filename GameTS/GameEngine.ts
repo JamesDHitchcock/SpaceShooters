@@ -305,6 +305,9 @@ export class GameState
    }
 }
 
+//To help deal with desync issues, let's try and make sure game starts
+//at same time on both computers?
+
 export class GameEngine
 {
    private gameStates:GameState[];

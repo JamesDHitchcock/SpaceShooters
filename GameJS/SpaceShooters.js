@@ -18,7 +18,7 @@ export class SpaceShooters {
         this.fontSize = 48;
         this.font = "Arial";
         this.fontColor = "white";
-        this.desiredFPS = 10;
+        this.desiredFPS = 15;
         this.fpsInterval = 1000 / this.desiredFPS;
     }
     KeyDown(event) {

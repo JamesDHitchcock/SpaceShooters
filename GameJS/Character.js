@@ -32,6 +32,9 @@ export class Character {
     Width() {
         return this.width;
     }
+    SetFillStyle(aString) {
+        this.fillStyle = aString;
+    }
     TakeDamage() {
         this.health--;
     }
@@ -57,12 +60,14 @@ export class Player extends Character {
         this.framesBetweenShots = 3;
         this.frameLastFired = -this.framesBetweenShots;
         this.toMove = 20;
-        this.posX = 288;
+        this.posX = 263;
         this.posY = 290;
         this.width = 50;
         this.height = 50;
         this.fillStyle = "yellow";
         this.health = 10;
+        this.img = new Image(this.width, this.height);
+        this.img.src = "../Resources/homePlayer.png";
     }
     ProcessInput(aInput) {
         if (aInput["a"] || aInput["ArrowLeft"]) {
@@ -90,12 +95,10 @@ export class Player extends Character {
     }
     CheckCollision(aCharacter) {
         let collisionCheck;
-        //player is drawn as a triangle with x,y at top of triangle.
-        //want player to be the rectangle starting at point half width from top
-        let xPos = this.posX - this.width / 2;
-        let yPos = this.posY;
-        //Give player a little more leeway on taking damage
         let indent = 10;
+        let xPos = this.posX;
+        let yPos = this.posY;
+        //Give player a little more leeway on taking damage by using indent
         collisionCheck = (((yPos + this.height - indent) < aCharacter.PosY()) ||
             (yPos + indent > (aCharacter.PosY() + aCharacter.Height())) ||
             ((xPos + this.width - indent) < aCharacter.PosX()) ||
@@ -121,7 +124,7 @@ export class Player extends Character {
     FireBullet(aFrame) {
         this.frameLastFired = aFrame;
         let aBullet = new Bullet(0, 0);
-        aBullet.SetPos(this.posX - aBullet.Width() / 2, this.posY - aBullet.Height());
+        aBullet.SetPos(this.posX + this.width / 2 - aBullet.Width() / 2, this.posY - aBullet.Height());
         aBullet.SetFiredByPlayer();
         return aBullet;
     }
@@ -147,6 +150,9 @@ export class Player extends Character {
         this.health--;
     }
     Draw(aCtx) {
+        aCtx.drawImage(this.img, this.posX, this.posY);
+    }
+    DrawTriangle(aCtx) {
         aCtx.fillStyle = this.fillStyle;
         aCtx.beginPath();
         aCtx.moveTo(this.posX, this.posY);
@@ -159,14 +165,16 @@ export class Player extends Character {
 export class Enemy extends Character {
     constructor(x, y) {
         super(x, y);
-        this.width = 60;
-        this.height = 60;
+        this.width = 50;
+        this.height = 50;
         this.fillStyle = "red";
         this.health = 3;
         this.toMove = 30;
         this.moveLeft = true;
         this.frameLastFired = 0;
         this.framesBetweenShots = 12;
+        this.img = new Image(this.width, this.height);
+        this.img.src = "../Resources/enemy.png";
     }
     SwapMovement() {
         this.moveLeft = !this.moveLeft;
@@ -188,6 +196,7 @@ export class Enemy extends Character {
         let aBullet = new Bullet(0, 0);
         aBullet.SetPos(this.posX + this.width / 2 - aBullet.Width() / 2, this.posY + this.height);
         aBullet.SetToMove(aBullet.ToMove() / 2);
+        aBullet.SetFillStyle(this.fillStyle);
         return aBullet;
     }
     Update() {
@@ -200,8 +209,7 @@ export class Enemy extends Character {
     }
     Draw(aCtx) {
         if (this.health > 0) {
-            aCtx.fillStyle = this.fillStyle;
-            aCtx.fillRect(this.posX, this.posY, this.width, this.height);
+            aCtx.drawImage(this.img, this.posX, this.posY);
         }
     }
 }
