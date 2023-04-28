@@ -330,6 +330,7 @@ export class GameEngine
       this.localFrame = this.initialFrame;
       this.remoteFrame = this.initialFrame;
       this.syncFrame = this.initialFrame;
+      this.remoteFrameAdvantage = 0;
 
       this.maxRollBackFrames = 99;
       this.frameAdvantageLimit = 99;
@@ -398,6 +399,7 @@ export class GameEngine
       this.localFrame = this.initialFrame;
       this.remoteFrame = this.initialFrame;
       this.syncFrame = this.initialFrame;
+      this.remoteFrameAdvantage = 0;
 
       this.maxRollBackFrames = 99;
       this.frameAdvantageLimit = 99;
@@ -455,7 +457,8 @@ export class GameEngine
       let largestRemoteFrame:number = 0;
       while(!this.dataBuffer.Empty())
       {
-         let frameData:DataTransfer = this.dataBuffer.Top();
+         let incData = this.dataBuffer.Top();
+         let frameData = new DataTransfer(incData.frameNumber,incData.keys);
          if(frameData.Frame() > largestRemoteFrame)
          {
           largestRemoteFrame = frameData.Frame();  
@@ -530,11 +533,13 @@ export class GameEngine
       {
          this.mode = "wait";
          this.waitMessage = "You Lose";
+         this.dataBuffer.DisableConnection();
       }
       if(this.EnemiesAllGone())
       {
          this.mode = "wait";
          this.waitMessage = "You Win!";
+         this.dataBuffer.DisableConnection();
       }
    }
 

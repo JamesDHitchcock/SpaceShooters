@@ -3,9 +3,9 @@
 
  export class DataTransfer
  {
-    protected frameNumber:number;
+    public frameNumber:number;
     //protected frameAdvantage:number;
-    protected keys:Record<string,boolean> =
+    public keys:Record<string,boolean> =
     {
        "a": false,
        "d": false,
@@ -60,6 +60,7 @@
          globalThis.game.AlertConnection();
          this.dataCon.on('data', (data) =>{
             this.dataBuffer.push(data);
+            console.log(data);
          });
       });
    }
@@ -80,23 +81,29 @@
 
          this.dataCon.on('data', (data) => {
             this.dataBuffer.push(data);
+            console.log(data);
          });
       }
    }
 
-   Top() : DataTransfer
+   public Top() : DataTransfer
    {
       return this.dataBuffer.shift();
    }
 
-   Empty() : boolean
+   public Empty() : boolean
    {
       return (this.dataBuffer.length == 0);
    }
 
-   ConnectionEstablished(): boolean
+   public ConnectionEstablished(): boolean
    {
       return this.connectionEstablished;
+   }
+
+   public DisableConnection(): void
+   {
+      this.connectionEstablished = false;
    }
 
    public Send(dataToSend:DataTransfer): void

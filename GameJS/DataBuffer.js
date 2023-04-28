@@ -39,6 +39,7 @@ export class DataBuffer {
             globalThis.game.AlertConnection();
             this.dataCon.on('data', (data) => {
                 this.dataBuffer.push(data);
+                console.log(data);
             });
         });
     }
@@ -53,6 +54,7 @@ export class DataBuffer {
             });
             this.dataCon.on('data', (data) => {
                 this.dataBuffer.push(data);
+                console.log(data);
             });
         }
     }
@@ -64,6 +66,9 @@ export class DataBuffer {
     }
     ConnectionEstablished() {
         return this.connectionEstablished;
+    }
+    DisableConnection() {
+        this.connectionEstablished = false;
     }
     Send(dataToSend) {
         if (this.connectionEstablished) {
