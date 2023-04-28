@@ -332,8 +332,8 @@ export class GameEngine
       this.syncFrame = this.initialFrame;
       this.remoteFrameAdvantage = 0;
 
-      this.maxRollBackFrames = 99;
-      this.frameAdvantageLimit = 99;
+      this.maxRollBackFrames = 5;
+      this.frameAdvantageLimit = 5;
 
       this.maxHealthPool = 10;
 
@@ -371,7 +371,7 @@ export class GameEngine
 
    PlayerHealthPool(): number
    {
-      return this.gameStates[this.gameStates.length - 1].PlayerHealthPool();
+      return this.gameStates[this.localFrame].PlayerHealthPool();
    }
 
    MaxHealthPool(): number
@@ -381,7 +381,7 @@ export class GameEngine
 
    EnemiesAllGone(): boolean
    {
-      return this.gameStates[this.gameStates.length - 1].EnemiesAllGone();
+      return this.gameStates[this.localFrame].EnemiesAllGone();
    }
 
    AlertConnection(): void
@@ -389,8 +389,11 @@ export class GameEngine
       //want to reset to wait mode, and then go into multiplayer since
       //connection should now be established from other client that initiated
       //and no need for us to iniate back.
-      this.Reset("wait");
-      this.mode = "mp";
+      if(!this.MultiPlayer())
+      {
+         this.Reset("wait");
+         this.mode = "mp";
+      }
    }
 
    Reset(aMode: string): void
@@ -401,8 +404,8 @@ export class GameEngine
       this.syncFrame = this.initialFrame;
       this.remoteFrameAdvantage = 0;
 
-      this.maxRollBackFrames = 99;
-      this.frameAdvantageLimit = 99;
+      this.maxRollBackFrames = 5;
+      this.frameAdvantageLimit = 5;
 
       this.gameStates = new Array<GameState>();
       this.gameStates.push(new GameState(this.initialFrame));
@@ -432,11 +435,15 @@ export class GameEngine
    }
    
    //Combine Check with Update
-   CheckFrameAndUpdateInput(frameData:DataTransfer): boolean
+   CheckFrameAndUpdateInput(aFrameData:DataTransfer): boolean
    {
       let firstFrame = this.gameStates[0].Frame();
-      let index = frameData.Frame() - firstFrame;
-      return this.gameStates[index].CheckAndUpdateFromInput(frameData.Keys());
+      let index = aFrameData.Frame() - firstFrame;
+      while(index > this.gameStates.length-1)
+      {
+         this.gameStates.push(this.gameStates[this.gameStates.length-1].NextFrame());
+      }
+      return this.gameStates[index].CheckAndUpdateFromInput(aFrameData.Keys());
    }
 
    PredictAwayPlayerBehavior(aFrame:number)
@@ -543,6 +550,11 @@ export class GameEngine
       }
    }
 
+   RollbackFrames(): number
+   {
+      return Math.abs(this.localFrame - this.remoteFrame);
+   }
+
    Update(keys:Record<string,boolean>)
    {
       if(this.MultiPlayer())
@@ -562,9 +574,20 @@ export class GameEngine
             let aDataTransfer = new DataTransfer(this.localFrame,keys);
             this.dataBuffer.Send(aDataTransfer);
 
-            this.gameStates.push(
-               this.gameStates[this.gameStates.length - 1].UseInputAndGenerateNextFrame(keys)
-            );
+            let indexToGenerate = this.localFrame - this.gameStates[0].Frame();
+            if(indexToGenerate > this.gameStates.length - 1)
+            {
+               this.gameStates.push(
+                  this.gameStates[this.gameStates.length - 1].UseInputAndGenerateNextFrame(keys)
+               );
+            }
+            else
+            {
+               let aPlayer = new Player(0,0);
+               aPlayer.ProcessInput(keys);
+               this.gameStates[indexToGenerate-1].SetHomePlayerBehavior(aPlayer);
+               this.gameStates[indexToGenerate] = this.gameStates[indexToGenerate-1].NextFrame();
+            }
          }
          this.CheckGameState();
       }
@@ -604,6 +627,13 @@ export class GameEngine
 
    Draw(aCtx:CanvasRenderingContext2D)
    {
-      this.gameStates[this.gameStates.length - 1].Draw(aCtx);
+      if(this.MultiPlayer())
+      {
+         this.gameStates[this.localFrame].Draw(aCtx);
+      }
+      else
+      {
+         this.gameStates[this.gameStates.length - 1].Draw(aCtx);
+      }
    }
 }

@@ -196,8 +196,8 @@ export class GameEngine {
         this.remoteFrame = this.initialFrame;
         this.syncFrame = this.initialFrame;
         this.remoteFrameAdvantage = 0;
-        this.maxRollBackFrames = 99;
-        this.frameAdvantageLimit = 99;
+        this.maxRollBackFrames = 5;
+        this.frameAdvantageLimit = 5;
         this.maxHealthPool = 10;
         this.gameStates = new Array();
         this.gameStates.push(new GameState(this.initialFrame));
@@ -220,20 +220,22 @@ export class GameEngine {
         return this.waitMessage;
     }
     PlayerHealthPool() {
-        return this.gameStates[this.gameStates.length - 1].PlayerHealthPool();
+        return this.gameStates[this.localFrame].PlayerHealthPool();
     }
     MaxHealthPool() {
         return this.maxHealthPool;
     }
     EnemiesAllGone() {
-        return this.gameStates[this.gameStates.length - 1].EnemiesAllGone();
+        return this.gameStates[this.localFrame].EnemiesAllGone();
     }
     AlertConnection() {
         //want to reset to wait mode, and then go into multiplayer since
         //connection should now be established from other client that initiated
         //and no need for us to iniate back.
-        this.Reset("wait");
-        this.mode = "mp";
+        if (!this.MultiPlayer()) {
+            this.Reset("wait");
+            this.mode = "mp";
+        }
     }
     Reset(aMode) {
         this.initialFrame = 0;
@@ -241,8 +243,8 @@ export class GameEngine {
         this.remoteFrame = this.initialFrame;
         this.syncFrame = this.initialFrame;
         this.remoteFrameAdvantage = 0;
-        this.maxRollBackFrames = 99;
-        this.frameAdvantageLimit = 99;
+        this.maxRollBackFrames = 5;
+        this.frameAdvantageLimit = 5;
         this.gameStates = new Array();
         this.gameStates.push(new GameState(this.initialFrame));
         this.mode = aMode;
@@ -263,10 +265,13 @@ export class GameEngine {
         return true;
     }
     //Combine Check with Update
-    CheckFrameAndUpdateInput(frameData) {
+    CheckFrameAndUpdateInput(aFrameData) {
         let firstFrame = this.gameStates[0].Frame();
-        let index = frameData.Frame() - firstFrame;
-        return this.gameStates[index].CheckAndUpdateFromInput(frameData.Keys());
+        let index = aFrameData.Frame() - firstFrame;
+        while (index > this.gameStates.length - 1) {
+            this.gameStates.push(this.gameStates[this.gameStates.length - 1].NextFrame());
+        }
+        return this.gameStates[index].CheckAndUpdateFromInput(aFrameData.Keys());
     }
     PredictAwayPlayerBehavior(aFrame) {
         let firstFrame = this.gameStates[0].Frame();
@@ -346,6 +351,9 @@ export class GameEngine {
             this.dataBuffer.DisableConnection();
         }
     }
+    RollbackFrames() {
+        return Math.abs(this.localFrame - this.remoteFrame);
+    }
     Update(keys) {
         if (this.MultiPlayer()) {
             //processes and network data and determines sync frame
@@ -358,7 +366,16 @@ export class GameEngine {
                 this.localFrame++;
                 let aDataTransfer = new DataTransfer(this.localFrame, keys);
                 this.dataBuffer.Send(aDataTransfer);
-                this.gameStates.push(this.gameStates[this.gameStates.length - 1].UseInputAndGenerateNextFrame(keys));
+                let indexToGenerate = this.localFrame - this.gameStates[0].Frame();
+                if (indexToGenerate > this.gameStates.length - 1) {
+                    this.gameStates.push(this.gameStates[this.gameStates.length - 1].UseInputAndGenerateNextFrame(keys));
+                }
+                else {
+                    let aPlayer = new Player(0, 0);
+                    aPlayer.ProcessInput(keys);
+                    this.gameStates[indexToGenerate - 1].SetHomePlayerBehavior(aPlayer);
+                    this.gameStates[indexToGenerate] = this.gameStates[indexToGenerate - 1].NextFrame();
+                }
             }
             this.CheckGameState();
         }
@@ -390,7 +407,12 @@ export class GameEngine {
         this.gameStates[lastIndex].RemoveAllEnemies();
     }
     Draw(aCtx) {
-        this.gameStates[this.gameStates.length - 1].Draw(aCtx);
+        if (this.MultiPlayer()) {
+            this.gameStates[this.localFrame].Draw(aCtx);
+        }
+        else {
+            this.gameStates[this.gameStates.length - 1].Draw(aCtx);
+        }
     }
 }
 //# sourceMappingURL=GameEngine.js.map

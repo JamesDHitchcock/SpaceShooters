@@ -42,7 +42,7 @@ export class SpaceShooters
       this.font = "Arial"
       this.fontColor = "white";
       
-      this.desiredFPS = 15;
+      this.desiredFPS = 10;
       this.fpsInterval = 1000 / this.desiredFPS;
    }
 
@@ -157,12 +157,21 @@ export class SpaceShooters
       if(this.gameEngine.WaitMode())
       {
          this.ctx.fillStyle = this.fontColor;
-         this.ctx.textAlign = "center"
+         this.ctx.textAlign = "center";
          this.ctx.font = "bold " + this.fontSize.toString() + "px " + this.font;
 
          let xDraw = this.canvas.width/2;
          let yDraw = this.canvas.height/2;
          this.ctx.fillText(this.gameEngine.WaitMessage(),xDraw,yDraw);
+      }
+      if(this.gameEngine.MultiPlayer())
+      {
+         this.ctx.fillStyle = this.fontColor;
+         this.ctx.textAlign = "center";
+         let xDraw = this.canvas.width/2;
+         let yDraw = 40;
+         let frameRollbackString:string = "Rollback Frames: " + this.gameEngine.RollbackFrames().toString();
+         this.ctx.fillText(frameRollbackString,xDraw,yDraw);
       }
    }
 

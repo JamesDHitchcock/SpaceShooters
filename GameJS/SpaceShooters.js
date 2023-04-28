@@ -18,7 +18,7 @@ export class SpaceShooters {
         this.fontSize = 48;
         this.font = "Arial";
         this.fontColor = "white";
-        this.desiredFPS = 15;
+        this.desiredFPS = 10;
         this.fpsInterval = 1000 / this.desiredFPS;
     }
     KeyDown(event) {
@@ -105,6 +105,14 @@ export class SpaceShooters {
             let xDraw = this.canvas.width / 2;
             let yDraw = this.canvas.height / 2;
             this.ctx.fillText(this.gameEngine.WaitMessage(), xDraw, yDraw);
+        }
+        if (this.gameEngine.MultiPlayer()) {
+            this.ctx.fillStyle = this.fontColor;
+            this.ctx.textAlign = "center";
+            let xDraw = this.canvas.width / 2;
+            let yDraw = 40;
+            let frameRollbackString = "Rollback Frames: " + this.gameEngine.RollbackFrames().toString();
+            this.ctx.fillText(frameRollbackString, xDraw, yDraw);
         }
     }
     Begin() {
